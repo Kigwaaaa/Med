@@ -8,7 +8,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseOptions = {
   auth: {
     autoConfirm: true,
-    flowType: 'pkce',
+    flowType: 'pkce' as const,
+    detectSessionInUrl: true,
+    persistSession: true,
   },
   global: {
     headers: {
@@ -18,19 +20,15 @@ const supabaseOptions = {
 };
 
 // Check if the environment variables are properly set
-if (!supabaseUrl || supabaseUrl === 'your-project-url' || !supabaseUrl.startsWith('http')) {
+if (!supabaseUrl || !supabaseUrl.startsWith('https://')) {
   throw new Error(
-    'Invalid or missing Supabase URL. Please:\n' +
-    '1. Click the "Connect to Supabase" button in the top right\n' +
-    '2. Copy your Supabase project URL to the VITE_SUPABASE_URL variable in the .env file'
+    'Invalid or missing Supabase URL. Please check your .env file and ensure VITE_SUPABASE_URL is set correctly.'
   );
 }
 
-if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key') {
+if (!supabaseAnonKey) {
   throw new Error(
-    'Invalid or missing Supabase Anon Key. Please:\n' +
-    '1. Click the "Connect to Supabase" button in the top right\n' +
-    '2. Copy your Supabase anon key to the VITE_SUPABASE_ANON_KEY variable in the .env file'
+    'Invalid or missing Supabase Anon Key. Please check your .env file and ensure VITE_SUPABASE_ANON_KEY is set correctly.'
   );
 }
 
