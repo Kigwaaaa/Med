@@ -56,6 +56,19 @@ create policy "Public lab_technicians are viewable by everyone."
     on lab_technicians for select
     using ( true );
 
+-- Create RLS policies for profiles table
+create policy "Users can view their own profile."
+    on profiles for select
+    using ( auth.uid() = id );
+
+create policy "Users can insert their own profile."
+    on profiles for insert
+    with check ( auth.uid() = id );
+
+create policy "Users can update their own profile."
+    on profiles for update
+    using ( auth.uid() = id );
+
 -- Add unique constraint to auth.users email if it doesn't exist
 DO $$
 BEGIN
