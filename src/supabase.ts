@@ -4,6 +4,19 @@ import type { Database } from './types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Configure Supabase options
+const supabaseOptions = {
+  auth: {
+    autoConfirm: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.0.0',
+    },
+  },
+};
+
 // Check if the environment variables are properly set
 if (!supabaseUrl || supabaseUrl === 'your-project-url' || !supabaseUrl.startsWith('http')) {
   throw new Error(
@@ -21,4 +34,4 @@ if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key') {
   );
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, supabaseOptions);

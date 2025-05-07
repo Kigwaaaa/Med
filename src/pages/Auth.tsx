@@ -70,6 +70,30 @@ export function Auth() {
         }
 
         if (signUpData?.user) {
+          // Try to sign in immediately
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            throw new Error('Failed to sign in. Please try again.');
+          }
+
+          // Show success message and redirect
+          setError('Account created successfully! Redirecting to dashboard...');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } else {
+          throw new Error('Failed to create account. Please try again.');
+        }
+
+        if (signUpError) {
+          throw new Error('Failed to create account. Please try again.');
+        }
+
+        if (signUpData?.user) {
           // Show success message and prompt to check email
           setError('Account created successfully! Please check your email to confirm your account.');
           setEmail('');
