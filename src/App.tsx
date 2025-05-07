@@ -8,18 +8,13 @@ import {
   RefreshCw, 
   LogOut,
 } from 'lucide-react';
-import { Session } from '@supabase/supabase-js'; // Correct import
 
 import { Dashboard } from './pages/Dashboard';
 import { MedicalRecords } from './pages/MedicalRecords';
 import { Appointments } from './pages/Appointments';
 import { Notifications } from './pages/Notifications';
 import { AboutUs } from './pages/AboutUs';
-import { DoctorDashboard } from './pages/DoctorDashboard';
 import { Auth } from './pages/Auth';
-import { EmployeeAuth } from './pages/EmployeeAuth';
-import { LabTechDashboard } from './pages/LabTechDashboard';
-import { supabase } from './supabase';
 
 // Add type for SidebarLink props
 interface SidebarLinkProps {
@@ -44,47 +39,26 @@ function SidebarLink({ icon, text, to, active = false }: SidebarLinkProps) {
 }
 
 function App() {
-  const [session, setSession] = useState<Session | null>(null); // Add type annotation
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [doctorInfo, setDoctorInfo] = useState<Record<string, unknown> | null>(null);
-  const [labTechInfo, setLabTechInfo] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    const storedDoctorInfo = localStorage.getItem('doctorInfo');
-    const storedLabTechInfo = localStorage.getItem('labTechInfo');
-    
-    if (storedDoctorInfo) {
+    // Check for user in localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
       try {
-        setDoctorInfo(JSON.parse(storedDoctorInfo));
+        setUser(JSON.parse(storedUser));
       } catch (e) {
-        localStorage.removeItem('doctorInfo');
+        localStorage.removeItem('user');
       }
     }
-    
-    if (storedLabTechInfo) {
-      try {
-        setLabTechInfo(JSON.parse(storedLabTechInfo));
-      } catch (e) {
-        localStorage.removeItem('labTechInfo');
-      }
-    }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    async function initAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setLoading(false);
-    }
-
-    initAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+  };
 
   if (loading) {
     return (
@@ -98,39 +72,18 @@ function App() {
     <Router>
       <Routes>
         <Route path="/auth" element={
-          session ? <Navigate to="/dashboard" replace /> : <Auth />
-        } />
-        <Route path="/employee" element={
-          doctorInfo ? <Navigate to="/doctor" replace /> :
-          labTechInfo ? <Navigate to="/lab" replace /> :
-          <EmployeeAuth />
+          user ? <Navigate to="/dashboard" replace /> : <Auth />
         } />
         <Route path="/" element={
-          doctorInfo ? <Navigate to="/doctor" replace /> :
-          labTechInfo ? <Navigate to="/lab" replace /> :
-          session ? <Navigate to="/dashboard" replace /> :
+          user ? <Navigate to="/dashboard" replace /> :
           <Navigate to="/auth" replace />
         } />
         
-        {/* Doctor Routes */}
-        <Route
-          path="/doctor/*"
-          element={
-            doctorInfo ? (
-              <Routes>
-                <Route path="dashboard" element={<DoctorDashboard />} />
-                <Route path="" element={<Navigate to="dashboard" replace />} />
-              </Routes>
-            ) : (
-              <Navigate to="/employee" replace />
-            )
-          } />
-
         {/* Patient Routes */}
         <Route
           path="/*"
           element={
-            session ? (
+            user ? (
               <div className="min-h-screen bg-gray-100 flex">
                 {/* Sidebar */}
                 <div className="w-64 bg-white shadow-lg">
@@ -144,7 +97,7 @@ function App() {
                       <SidebarLink icon={<FileText size={20} />} text="Medical Records" to="/records" />
                       <div className="mt-12 border-t pt-4">
                         <button
-                          onClick={() => supabase.auth.signOut()}
+                          onClick={handleLogout}
                           className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-colors text-gray-700 hover:bg-gray-50 w-full"
                         >
                           <LogOut size={20} />
@@ -166,21 +119,6 @@ function App() {
               </div>
             ) : (
               <Navigate to="/auth" replace />
-            )
-          }
-        />
-        
-        {/* Lab Technician Routes */}
-        <Route
-          path="/lab/*"
-          element={
-            labTechInfo ? (
-              <Routes>
-                <Route path="dashboard" element={<LabTechDashboard />} />
-                <Route path="" element={<Navigate to="dashboard" replace />} />
-              </Routes>
-            ) : (
-              <Navigate to="/employee" replace />
             )
           }
         />

@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Users } from 'lucide-react';
-import { supabase } from '../supabase';
+
+// Demo user data
+const DEMO_USERS = [
+  {
+    email: 'demo@example.com',
+    password: 'demo123',
+    firstName: 'Demo',
+    surname: 'User',
+    age: 30,
+    gender: 'male'
+  }
+];
 
 export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,81 +42,36 @@ export function Auth() {
 
     try {
       if (isLogin) {
-        const { error: signInError, data } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // Check against demo users
+        const user = DEMO_USERS.find(u => u.email === email && u.password === password);
         
-        if (signInError) {
-          if (signInError.message.includes('Email not confirmed')) {
-            throw new Error('Please check your email for the confirmation link.');
-          } else {
-            throw new Error('Invalid email or password. Please try again.');
-          }
+        if (!user) {
+          throw new Error('Invalid email or password. Please try again.');
         }
-        
-        if (!data.user) {
-          throw new Error('No user data returned');
-        }
-        
-        navigate('/dashboard');
+
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+        // Use replace: true to prevent back navigation to login
+        navigate('/dashboard', { replace: true });
       } else {
-        // Sign up the user
-        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        // For demo purposes, automatically create an account
+        const newUser = {
           email,
           password,
-          options: {
-            emailRedirectTo: window.location.origin + '/auth',
-            data: {
-              first_name: firstName,
-              surname: surname,
-              age: parseInt(age),
-              gender: gender,
-            }
-          }
-        });
+          firstName,
+          surname,
+          age: parseInt(age),
+          gender
+        };
 
-        if (signUpError) {
-          throw new Error('Failed to create account. Please try again.');
-        }
-
-        if (signUpData?.user) {
-          // Try to sign in immediately
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) {
-            throw new Error('Failed to sign in. Please try again.');
-          }
-
-          // Show success message and redirect
-          setError('Account created successfully! Redirecting to dashboard...');
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 2000);
-        } else {
-          throw new Error('Failed to create account. Please try again.');
-        }
-
-        if (signUpError) {
-          throw new Error('Failed to create account. Please try again.');
-        }
-
-        if (signUpData?.user) {
-          // Show success message and prompt to check email
-          setError('Account created successfully! Please check your email to confirm your account.');
-          setEmail('');
-          setPassword('');
-          setFirstName('');
-          setSurname('');
-          setAge('');
-          setGender('');
-          setIsLogin(true);
-        } else {
-          throw new Error('Failed to create account. Please try again.');
-        }
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(newUser));
+        
+        // Show success message and redirect
+        setError('Account created successfully! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 2000);
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred. Please try again.');
@@ -156,6 +122,11 @@ export function Auth() {
                 ? 'Sign in to access your medical records and appointments'
                 : 'Create an account to start your healthcare journey with us'}
             </p>
+            {isLogin && (
+              <p className="mt-2 text-sm text-gray-500">
+                Demo account: demo@example.com / demo123
+              </p>
+            )}
           </div>
 
           {error && (
@@ -250,7 +221,6 @@ export function Auth() {
                         <option value="male">Male</option>
                         <option value="female">Female</option>
                         <option value="other">Other</option>
-                        <option value="prefer-not-to-say">Prefer not to say</option>
                       </select>
                       <Users className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                     </div>
@@ -261,14 +231,13 @@ export function Auth() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                Email
               </label>
               <div className="relative">
                 <input
                   id="email"
                   name="email"
                   type="email"
-                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -288,59 +257,41 @@ export function Auth() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                   placeholder="••••••••"
                 />
-                {passwordError && (
-                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
-                )}
                 <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               </div>
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-colors ${
-                  loading ? 'opacity-75 cursor-not-allowed' : ''
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  isLogin ? 'Sign in' : 'Create Account'
-                )}
-              </button>
-            </div>
-
-            <div className="text-center mt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setError('');
-                  setEmail('');
-                  setPassword('');
-                  setPasswordError('');
-                }}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                {isLogin ? 'New patient? Create an account' : 'Already have an account? Sign in'}
+                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
               </button>
             </div>
 
             <div className="text-center">
-              <Link
-                to="/employee"
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
                 className="text-sm text-pink-600 hover:text-pink-500"
               >
-                Staff Portal Login
-              </Link>
+                {isLogin
+                  ? "Don't have an account? Sign up"
+                  : 'Already have an account? Sign in'}
+              </button>
             </div>
           </form>
         </div>
