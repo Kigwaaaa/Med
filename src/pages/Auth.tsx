@@ -1,0 +1,454 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+<<<<<<< HEAD
+import { Mail, Lock, User, Users, Eye, EyeOff } from 'lucide-react';
+import { db } from '../lib/localStorage';
+import { useAuth } from '../contexts/AuthContext';
+=======
+import { Mail, Lock, User, Users } from 'lucide-react';
+
+// Demo user data
+const DEMO_USERS = [
+  {
+    email: 'demo@example.com',
+    password: 'demo123',
+    firstName: 'Demo',
+    surname: 'User',
+    age: 30,
+    gender: 'male'
+  }
+];
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+
+export function Auth() {
+  const { setUser } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+
+  // Demo user data
+  const demoUsers = [
+    {
+      id: 'pat1',
+      email: 'demo@example.com',
+      password: 'demo123',
+      firstName: 'Demo',
+      surname: 'User',
+      age: 30,
+      gender: 'male',
+      role: 'patient'
+    },
+    {
+      id: 'doc1',
+      email: 'doctor@example.com',
+      password: 'doctor123',
+      firstName: 'Sarah',
+      surname: 'Johnson',
+      age: 35,
+      gender: 'female',
+      role: 'doctor',
+      staff_number: 'DOC123',
+      department: 'General Practice'
+    },
+    {
+      id: 'lab1',
+      email: 'lab@example.com',
+      password: 'lab123',
+      firstName: 'Michael',
+      surname: 'Chen',
+      age: 40,
+      gender: 'male',
+      role: 'lab_assistant',
+      staff_number: 'LAB456',
+      department: 'Laboratory'
+    },
+    {
+      id: 'nur1',
+      email: 'nurse@example.com',
+      password: 'nurse123',
+      firstName: 'Emily',
+      surname: 'Williams',
+      age: 32,
+      gender: 'female',
+      role: 'nurse',
+      staff_number: 'NUR789',
+      department: 'Nursing'
+    },
+    {
+      id: 'phr1',
+      email: 'pharm@example.com',
+      password: 'pharm123',
+      firstName: 'David',
+      surname: 'Brown',
+      age: 38,
+      gender: 'male',
+      role: 'pharmacist',
+      staff_number: 'PHR012',
+      department: 'Pharmacy'
+    }
+  ];
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setPasswordError('');
+
+    // Validate password length
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+<<<<<<< HEAD
+        // Check against users in local storage
+        const user = db.users.getByEmail(email);
+        
+        if (!user || user.password !== password) {
+          throw new Error('Invalid email or password. Please try again.');
+        }
+
+        // Store user data in localStorage and update auth state
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // Redirect based on user role
+        const role = user.role || 'patient';
+        const redirectPath = role === 'doctor' 
+          ? '/doctor/dashboard'
+          : role === 'lab_assistant'
+          ? '/lab/dashboard'
+          : '/dashboard';
+        
+        // Use replace: true to prevent back navigation to login
+        navigate(redirectPath, { replace: true });
+      } else {
+        // Check if user already exists
+        const existingUser = db.users.getByEmail(email);
+        if (existingUser) {
+          throw new Error('An account with this email already exists.');
+        }
+
+        // Create new user
+        const { data: newUser, error: signUpError } = db.users.create({
+=======
+        // Check against demo users
+        const user = DEMO_USERS.find(u => u.email === email && u.password === password);
+        
+        if (!user) {
+          throw new Error('Invalid email or password. Please try again.');
+        }
+
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+        // Use replace: true to prevent back navigation to login
+        navigate('/dashboard', { replace: true });
+      } else {
+        // For demo purposes, automatically create an account
+        const newUser = {
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+          email,
+          password,
+          firstName,
+          surname,
+          age: parseInt(age),
+<<<<<<< HEAD
+          gender,
+          role: 'patient'
+        });
+
+        if (signUpError) {
+          throw new Error('Failed to create account. Please try again.');
+        }
+
+        if (newUser) {
+          setError('Account created successfully! Please log in.');
+          setEmail('');
+          setPassword('');
+          setFirstName('');
+          setSurname('');
+          setAge('');
+          setGender('');
+          setIsLogin(true);
+        } else {
+          throw new Error('Failed to create account. Please try again.');
+        }
+=======
+          gender
+        };
+
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(newUser));
+        
+        // Show success message and redirect
+        setError('Account created successfully! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 2000);
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+      }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="https://raw.githubusercontent.com/stackblitz/stackblitz-images/main/medical-cubes-pattern.png"
+          alt=""
+          className="w-full h-full object-cover opacity-10"
+        />
+      </div>
+
+      {/* Left side - Illustration and Welcome Message */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 bg-white/80 backdrop-blur-sm relative z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 to-white/50 backdrop-blur-sm z-0"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <img
+            src="https://cdn.jsdelivr.net/npm/@healthcare-illustrations/general/general-04.svg"
+            alt="Medical Illustration"
+            className="w-full max-w-md mb-8"
+          />
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to NeemaMed</h1>
+            <p className="text-lg text-gray-600 max-w-md">
+              Your trusted partner in healthcare. Experience personalized medical care with our state-of-the-art facilities.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
+        <div className="max-w-md w-full bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-pink-600">NeemaMed</h2>
+            <h3 className="mt-6 text-2xl font-bold text-gray-900">
+              {isLogin ? 'Welcome Back!' : 'Join Our Healthcare Family'}
+            </h3>
+            <p className="mt-2 text-gray-600">
+              {isLogin
+                ? 'Sign in to access your medical records and appointments'
+                : 'Create an account to start your healthcare journey with us'}
+            </p>
+            {isLogin && (
+              <p className="mt-2 text-sm text-gray-500">
+                Demo account: demo@example.com / demo123
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className={`mt-4 border px-4 py-3 rounded-lg ${
+              error.includes('successfully')
+                ? 'bg-green-50 border-green-200 text-green-600'
+                : 'bg-red-50 border-red-200 text-red-600'
+            }`}>
+              {error}
+            </div>
+          )}
+
+          <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+            {!isLogin && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="firstName"
+                        name="firstName"
+                        type="text"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        placeholder="John"
+                      />
+                      <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="surname" className="block text-sm font-medium text-gray-700 mb-1">
+                      Surname
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="surname"
+                        name="surname"
+                        type="text"
+                        required
+                        value={surname}
+                        onChange={(e) => setSurname(e.target.value)}
+                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        placeholder="Doe"
+                      />
+                      <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
+                      Age
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="age"
+                        name="age"
+                        type="number"
+                        required
+                        min="0"
+                        max="150"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        placeholder="25"
+                      />
+                      <Users className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="gender"
+                        name="gender"
+                        required
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                      >
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <Users className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <div className="relative">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                  placeholder="you@example.com"
+                />
+                <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+<<<<<<< HEAD
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+=======
+                  type="password"
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                  placeholder="••••••••"
+                />
+                <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+<<<<<<< HEAD
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+                {passwordError && (
+                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                )}
+=======
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+              </div>
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              </button>
+            </div>
+
+            <div className="text-center">
+<<<<<<< HEAD
+              <Link
+                to="/staff"
+=======
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+>>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+                className="text-sm text-pink-600 hover:text-pink-500"
+              >
+                {isLogin
+                  ? "Don't have an account? Sign up"
+                  : 'Already have an account? Sign in'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
