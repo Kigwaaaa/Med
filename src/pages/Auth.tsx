@@ -1,24 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-<<<<<<< HEAD
 import { Mail, Lock, User, Users, Eye, EyeOff } from 'lucide-react';
 import { db } from '../lib/localStorage';
 import { useAuth } from '../contexts/AuthContext';
-=======
-import { Mail, Lock, User, Users } from 'lucide-react';
-
-// Demo user data
-const DEMO_USERS = [
-  {
-    email: 'demo@example.com',
-    password: 'demo123',
-    firstName: 'Demo',
-    surname: 'User',
-    age: 30,
-    gender: 'male'
-  }
-];
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
 
 export function Auth() {
   const { setUser } = useAuth();
@@ -112,8 +96,25 @@ export function Auth() {
 
     try {
       if (isLogin) {
-<<<<<<< HEAD
-        // Check against users in local storage
+        // Check against demo users first
+        const demoUser = demoUsers.find(u => u.email === email && u.password === password);
+        
+        if (demoUser) {
+          // Store user data in localStorage and update auth state
+          setUser(demoUser);
+          localStorage.setItem('user', JSON.stringify(demoUser));
+          
+          // Redirect based on user role
+          const redirectPath = demoUser.role === 'doctor' || demoUser.role === 'lab_assistant' || 
+                             demoUser.role === 'nurse' || demoUser.role === 'pharmacist'
+            ? '/staff/dashboard'
+            : '/dashboard';
+          
+          navigate(redirectPath, { replace: true });
+          return;
+        }
+
+        // If not a demo user, check against users in local storage
         const user = db.users.getByEmail(email);
         
         if (!user || user.password !== password) {
@@ -126,13 +127,11 @@ export function Auth() {
         
         // Redirect based on user role
         const role = user.role || 'patient';
-        const redirectPath = role === 'doctor' 
-          ? '/doctor/dashboard'
-          : role === 'lab_assistant'
-          ? '/lab/dashboard'
+        const redirectPath = role === 'doctor' || role === 'lab_assistant' || 
+                           role === 'nurse' || role === 'pharmacist'
+          ? '/staff/dashboard'
           : '/dashboard';
         
-        // Use replace: true to prevent back navigation to login
         navigate(redirectPath, { replace: true });
       } else {
         // Check if user already exists
@@ -143,28 +142,11 @@ export function Auth() {
 
         // Create new user
         const { data: newUser, error: signUpError } = db.users.create({
-=======
-        // Check against demo users
-        const user = DEMO_USERS.find(u => u.email === email && u.password === password);
-        
-        if (!user) {
-          throw new Error('Invalid email or password. Please try again.');
-        }
-
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(user));
-        // Use replace: true to prevent back navigation to login
-        navigate('/dashboard', { replace: true });
-      } else {
-        // For demo purposes, automatically create an account
-        const newUser = {
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
           email,
           password,
           firstName,
           surname,
           age: parseInt(age),
-<<<<<<< HEAD
           gender,
           role: 'patient'
         });
@@ -185,19 +167,6 @@ export function Auth() {
         } else {
           throw new Error('Failed to create account. Please try again.');
         }
-=======
-          gender
-        };
-
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(newUser));
-        
-        // Show success message and redirect
-        setError('Account created successfully! Redirecting to dashboard...');
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true });
-        }, 2000);
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred. Please try again.');
@@ -248,107 +217,85 @@ export function Auth() {
                 ? 'Sign in to access your medical records and appointments'
                 : 'Create an account to start your healthcare journey with us'}
             </p>
-            {isLogin && (
-              <p className="mt-2 text-sm text-gray-500">
-                Demo account: demo@example.com / demo123
-              </p>
-            )}
           </div>
 
           {error && (
-            <div className={`mt-4 border px-4 py-3 rounded-lg ${
-              error.includes('successfully')
-                ? 'bg-green-50 border-green-200 text-green-600'
-                : 'bg-red-50 border-red-200 text-red-600'
-            }`}>
+            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+          <form onSubmit={handleAuth} className="mt-8 space-y-6">
             {!isLogin && (
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
                       First Name
                     </label>
-                    <div className="relative">
+                    <div className="mt-1 relative">
                       <input
                         id="firstName"
-                        name="firstName"
                         type="text"
                         required
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="John"
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                       />
-                      <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                     </div>
                   </div>
-
                   <div>
-                    <label htmlFor="surname" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="surname" className="block text-sm font-medium text-gray-700">
                       Surname
                     </label>
-                    <div className="relative">
+                    <div className="mt-1 relative">
                       <input
                         id="surname"
-                        name="surname"
                         type="text"
                         required
                         value={surname}
                         onChange={(e) => setSurname(e.target.value)}
-                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="Doe"
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                       />
-                      <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="age" className="block text-sm font-medium text-gray-700">
                       Age
                     </label>
-                    <div className="relative">
+                    <div className="mt-1 relative">
                       <input
                         id="age"
-                        name="age"
                         type="number"
                         required
                         min="0"
-                        max="150"
+                        max="120"
                         value={age}
                         onChange={(e) => setAge(e.target.value)}
-                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                        placeholder="25"
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                       />
-                      <Users className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                     </div>
                   </div>
-
                   <div>
-                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
                       Gender
                     </label>
-                    <div className="relative">
+                    <div className="mt-1 relative">
                       <select
                         id="gender"
-                        name="gender"
                         required
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
-                        className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                       >
                         <option value="">Select gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
                         <option value="other">Other</option>
                       </select>
-                      <Users className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                     </div>
                   </div>
                 </div>
@@ -356,62 +303,53 @@ export function Auth() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
               </label>
-              <div className="relative">
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                  placeholder="you@example.com"
+                  className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                 />
-                <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <div className="relative">
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="password"
-                  name="password"
-<<<<<<< HEAD
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-=======
-                  type="password"
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                  placeholder="••••••••"
+                  className="appearance-none block w-full pl-10 pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                 />
-                <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-<<<<<<< HEAD
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-                {passwordError && (
-                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
-                )}
-=======
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
               {passwordError && (
                 <p className="mt-1 text-sm text-red-600">{passwordError}</p>
@@ -422,31 +360,63 @@ export function Auth() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
-              </button>
-            </div>
-
-            <div className="text-center">
-<<<<<<< HEAD
-              <Link
-                to="/staff"
-=======
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
->>>>>>> 80f8f8fcad3ccb245275a51dfe04594c8526f471
-                className="text-sm text-pink-600 hover:text-pink-500"
-              >
-                {isLogin
-                  ? "Don't have an account? Sign up"
-                  : 'Already have an account? Sign in'}
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : isLogin ? (
+                  'Sign In'
+                ) : (
+                  'Create Account'
+                )}
               </button>
             </div>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                  setPasswordError('');
+                }}
+                className="font-medium text-pink-600 hover:text-pink-500"
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3">
+              {demoUsers.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => {
+                    setEmail(user.email);
+                    setPassword(user.password);
+                  }}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <User className="h-5 w-5 mr-2 text-gray-400" />
+                  {user.role === 'patient' ? 'Demo Patient' : `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} Account`}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
