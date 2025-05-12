@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Users, Eye, EyeOff } from 'lucide-react';
-import { getProfiles, saveProfile } from '../lib/localStorage';
+import { saveProfile } from '../lib/localStorage';
 import type { Profile } from '../types/database';
 
 // Demo user data
