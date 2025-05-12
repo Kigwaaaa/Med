@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, Users } from 'lucide-react';
+import { Mail, Lock, User, Users, Eye, EyeOff } from 'lucide-react';
+import { getProfiles, saveProfile } from '../lib/localStorage';
+import type { Profile } from '../types/database';
 
 // Demo user data
 const DEMO_USERS = [
   {
-    email: 'demo@example.com',
+    email: 'patient@example.com',
     password: 'demo123',
-    firstName: 'Demo',
+    first_name: 'Demo',
     surname: 'User',
     age: 30,
-    gender: 'male'
+    gender: 'male',
+    role: 'patient',
+    id: '1'
   }
 ];
 
@@ -25,16 +29,52 @@ export function Auth() {
   const [gender, setGender] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    setPasswordError('');
+    setError('');
+
+    if (!email) {
+      setError('Email is required');
+      return false;
+    }
+
+    if (!password) {
+      setError('Password is required');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters long');
+      return false;
+    }
+
+    if (!isLogin) {
+      if (!firstName || !surname) {
+        setError('First name and surname are required');
+        return false;
+      }
+
+      if (!age || parseInt(age) <= 0 || parseInt(age) > 150) {
+        setError('Please enter a valid age between 1 and 150');
+        return false;
+      }
+
+      if (!gender) {
+        setError('Please select a gender');
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setPasswordError('');
-
-    // Validate password length
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters long');
+    
+    if (!validateForm()) {
       return;
     }
 
@@ -54,14 +94,30 @@ export function Auth() {
         // Use replace: true to prevent back navigation to login
         navigate('/dashboard', { replace: true });
       } else {
-        // For demo purposes, automatically create an account
-        const newUser = {
-          email,
-          password,
-          firstName,
+        // Check if email already exists
+        const existingUser = DEMO_USERS.find(u => u.email === email);
+        if (existingUser) {
+          throw new Error('An account with this email already exists.');
+        }
+
+        // Create new profile using local storage
+        const newProfile: Omit<Profile, 'id' | 'created_at' | 'updated_at'> = {
+          first_name: firstName,
           surname,
           age: parseInt(age),
-          gender
+          gender,
+          upcoming_appointments: 0
+        };
+
+        // Save profile to local storage
+        const savedProfile = saveProfile(newProfile);
+
+        // Create user object with auth data
+        const newUser = {
+          ...savedProfile,
+          email,
+          password, // Note: In a real app, this should be hashed
+          role: 'patient'
         };
 
         // Store user data in localStorage
@@ -115,31 +171,20 @@ export function Auth() {
           <div className="text-center">
             <h2 className="text-3xl font-bold text-pink-600">NeemaMed</h2>
             <h3 className="mt-6 text-2xl font-bold text-gray-900">
-              {isLogin ? 'Welcome Back!' : 'Join Our Healthcare Family'}
+              {isLogin ? 'Welcome Back' : 'Create Account'}
             </h3>
             <p className="mt-2 text-gray-600">
-              {isLogin
-                ? 'Sign in to access your medical records and appointments'
-                : 'Create an account to start your healthcare journey with us'}
+              {isLogin ? 'Sign in to access your account' : 'Sign up to get started'}
             </p>
-            {isLogin && (
-              <p className="mt-2 text-sm text-gray-500">
-                Demo account: demo@example.com / demo123
-              </p>
-            )}
           </div>
 
           {error && (
-            <div className={`mt-4 border px-4 py-3 rounded-lg ${
-              error.includes('successfully')
-                ? 'bg-green-50 border-green-200 text-green-600'
-                : 'bg-red-50 border-red-200 text-red-600'
-            }`}>
+            <div className="mt-4 border px-4 py-3 rounded-lg bg-red-50 border-red-200 text-red-600">
               {error}
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+          <form onSubmit={handleAuth} className="mt-8 space-y-6">
             {!isLogin && (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -256,14 +301,22 @@ export function Auth() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                   placeholder="••••••••"
                 />
                 <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
               {passwordError && (
                 <p className="mt-1 text-sm text-red-600">{passwordError}</p>
@@ -282,16 +335,22 @@ export function Auth() {
               </button>
             </div>
 
-            <div className="text-center">
+            <div className="flex flex-col items-center gap-4">
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-sm text-pink-600 hover:text-pink-500"
               >
-                {isLogin
-                  ? "Don't have an account? Sign up"
-                  : 'Already have an account? Sign in'}
+                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
+              
+              <Link
+                to="/employee-auth"
+                className="text-sm text-gray-600 hover:text-gray-500 flex items-center gap-2"
+              >
+                <User size={16} />
+                Staff Login
+              </Link>
             </div>
           </form>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Check, FlaskRound as Flask } from 'lucide-react';
-import { supabase } from '../supabase';
 import type { LabTest, Doctor } from '../types/database';
+import { getLabTests, getDoctors } from '../lib/localStorage';
 
 interface LabTestWithDoctor extends LabTest {
   doctor: Doctor;
@@ -10,33 +10,52 @@ interface LabTestWithDoctor extends LabTest {
 export function MedicalRecords() {
   const [labTests, setLabTests] = useState<LabTestWithDoctor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchLabTests();
+    loadLabTests();
   }, []);
 
-  const fetchLabTests = async () => {
+  const loadLabTests = () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
 
-      const { data, error } = await supabase
-        .from('lab_tests')
-        .select(`
-          *,
-          doctor:doctors(*)
-        `)
-        .eq('patient_id', user.id)
-        .order('created_at', { ascending: false });
+      const user = JSON.parse(userStr);
+      const tests = getLabTests();
+      const doctors = getDoctors();
 
-      if (error) throw error;
-      setLabTests(data || []);
+      // Combine lab tests with doctor data
+      const testsWithDoctors = tests
+        .filter(test => test.patient_id === user.id)
+        .map(test => ({
+          ...test,
+          doctor: doctors.find(doc => doc.id === test.doctor_id) || {
+            id: '',
+            staff_number: '',
+            first_name: 'Unknown',
+            last_name: 'Doctor',
+            email: '',
+            phone: '',
+            department: '',
+            created_at: ''
+          }
+        }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setLabTests(testsWithDoctors);
     } catch (error) {
-      console.error('Error fetching lab tests:', error);
+      console.error('Error loading lab tests:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredTests = labTests.filter(test => 
+    test.test_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    test.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (test.results && test.results.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="flex-1 p-6">
@@ -48,11 +67,17 @@ export function MedicalRecords() {
               type="text"
               placeholder="Search for medical records"
               className="w-full p-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search medical records"
             />
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-          <button className="bg-pink-600 text-white px-4 py-2 rounded-lg">
-            View
+          <button 
+            className="bg-pink-600 text-white px-4 py-2 rounded-lg"
+            onClick={() => setSearchQuery('')}
+          >
+            Clear
           </button>
         </div>
       </div>
@@ -62,7 +87,7 @@ export function MedicalRecords() {
         <h2 className="text-2xl font-bold mb-6">Lab Tests</h2>
         <div className="bg-white rounded-lg shadow-md p-6">
             <div className="space-y-4">
-              {labTests.map((test) => (
+              {filteredTests.map((test) => (
                 <div key={test.id} className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-start justify-between">
                     <div>
@@ -71,7 +96,7 @@ export function MedicalRecords() {
                         {test.test_type}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        Dr. {test.doctor.name}
+                        Dr. {test.doctor.first_name} {test.doctor.last_name}
                       </p>
                       <p className="text-sm text-gray-600">
                         {new Date(test.created_at).toLocaleDateString()}
@@ -102,9 +127,9 @@ export function MedicalRecords() {
                 </div>
               ))}
 
-              {labTests.length === 0 && (
+              {filteredTests.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  No lab tests available
+                  {searchQuery ? 'No matching lab tests found' : 'No lab tests available'}
                 </div>
               )}
             </div>

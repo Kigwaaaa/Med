@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Users, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../supabase';
 import type { Profile, Appointment, Doctor } from '../types/database';
+import { getProfiles, getAppointments, getDoctors } from '../lib/localStorage';
 
 export function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -11,57 +11,65 @@ export function Dashboard() {
   const [allAppointments, setAllAppointments] = useState<(Appointment & { doctor: Doctor })[]>([]);
 
   useEffect(() => {
-    async function getProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
+    function loadDashboardData() {
+      // Get user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
       
-      if (user) {
-        // Get profile data
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        setProfile(data);
-        
-        // Get last login time from user metadata
-        const lastLoginTime = user.last_sign_in_at;
-        if (lastLoginTime) {
-          const date = new Date(lastLoginTime);
-          setLastLogin(date.toLocaleString());
-          
-          // Fetch all appointments
-          const { data: allAppointmentsData } = await supabase
-            .from('appointments')
-            .select(`
-              *,
-              doctor:doctors(*)
-            `)
-            .eq('patient_id', user.id)
-            .in('status', ['pending', 'accepted']);
-          
-          // Sort appointments: pending first, then by date
-          const sortedAppointments = (allAppointmentsData || []).sort((a, b) => {
-            // First sort by status (pending comes before accepted)
-            if (a.status !== b.status) {
-              return a.status === 'pending' ? -1 : 1;
-            }
-            // Then sort by date
-            return new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
-          });
-          
-          setAllAppointments(sortedAppointments);
-          
-          // Filter accepted appointments for the upcoming section
-          const upcoming = sortedAppointments.filter(
-            app => app.status === 'accepted' && new Date(app.appointment_date) >= new Date()
-          );
-          setUpcomingAppointments(upcoming);
+      const user = JSON.parse(userStr);
+      
+      // Get profile data
+      const profiles = getProfiles();
+      const userProfile = profiles.find(p => p.id === user.id);
+      setProfile(userProfile || null);
+      
+      // Set last login time
+      const lastLoginTime = user.last_sign_in_at || new Date().toISOString();
+      const date = new Date(lastLoginTime);
+      setLastLogin(date.toLocaleString());
+      
+      // Get all appointments
+      const appointments = getAppointments();
+      const doctors = getDoctors();
+      
+      // Combine appointments with doctor data
+      const appointmentsWithDoctors = appointments
+        .filter(app => app.patient_id === user.id)
+        .map(app => ({
+          ...app,
+          doctor: doctors.find(doc => doc.id === app.doctor_id) || {
+            id: '',
+            staff_number: '',
+            first_name: 'Unknown',
+            last_name: 'Doctor',
+            email: '',
+            phone: '',
+            department: '',
+            created_at: ''
+          }
+        }))
+        .filter(app => ['pending', 'accepted'].includes(app.status));
+      
+      // Sort appointments: pending first, then by date
+      const sortedAppointments = appointmentsWithDoctors.sort((a, b) => {
+        // First sort by status (pending comes before accepted)
+        if (a.status !== b.status) {
+          return a.status === 'pending' ? -1 : 1;
         }
-      }
+        // Then sort by date
+        return new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+      });
+      
+      setAllAppointments(sortedAppointments);
+      
+      // Filter accepted appointments for the upcoming section
+      const upcoming = sortedAppointments.filter(
+        app => app.status === 'accepted' && new Date(app.appointment_date) >= new Date()
+      );
+      setUpcomingAppointments(upcoming);
     }
 
-    getProfile();
+    loadDashboardData();
   }, []);
 
   return (
@@ -126,7 +134,7 @@ export function Dashboard() {
                   <h3 className="font-semibold">{appointment.type}</h3>
                 </div>
                 <p className="text-sm text-gray-600">
-                  With Dr. {appointment.doctor.name}
+                  With Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
                 </p>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="w-4 h-4" />

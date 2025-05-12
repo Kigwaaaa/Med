@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, User, Clock, Check, X, Eye, Filter, FlaskRound as Flask, Bell, Home, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
-import { supabase } from '../supabase';
+import { getAppointments, getProfiles, getLabTests } from '../lib/localStorage';
 import type { Doctor, Appointment, Profile, LabTest } from '../types/database';
 
 interface LabTestWithDetails extends LabTest {
@@ -14,9 +14,9 @@ interface LabTestWithDetails extends LabTest {
 export function DoctorDashboard() {
   const [selectedTab, setSelectedTab] = useState('pending');
   const [doctorInfo, setDoctorInfo] = useState<Doctor | null>(null);
-  const [appointments, setAppointments] = useState<(Appointment & { patient: Profile })[]>([]);
-  const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
-  const [labTests, setLabTests] = useState<Record<string, LabTestWithDetails[]>>({});
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Profile[]>([]);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterValue, setFilterValue] = useState<'all' | 'today' | 'week'>('all');
   const [debouncedFilter] = useDebounce(filterValue, 300);
@@ -30,19 +30,40 @@ export function DoctorDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = () => {
     try {
-      const storedDoctorInfo = localStorage.getItem('doctorInfo');
-      if (!storedDoctorInfo) {
-        navigate('/employee');
-        return;
-      }
-      const doctorData = JSON.parse(storedDoctorInfo);
-      setDoctorInfo(doctorData);
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
+
+      const user = JSON.parse(userStr);
+      
+      // Get appointments for this doctor
+      const allAppointments = getAppointments()
+        .filter(app => app.doctor_id === user.id)
+        .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+      setAppointments(allAppointments);
+
+      // Get patients who have appointments with this doctor
+      const allProfiles = getProfiles();
+      const patientIds = new Set(allAppointments.map(app => app.patient_id));
+      const doctorPatients = allProfiles.filter(profile => patientIds.has(profile.id));
+      setPatients(doctorPatients);
+
+      // Get lab tests requested by this doctor
+      const allLabTests = getLabTests()
+        .filter(test => test.doctor_id === user.id)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setLabTests(allLabTests);
+
     } catch (error) {
-      console.error('Error parsing doctor info:', error);
-      navigate('/employee');
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
+  };
 
   const fetchLabTests = async () => {
     try {
@@ -286,6 +307,45 @@ export function DoctorDashboard() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Welcome, {doctorInfo?.name}</h1>
               <p className="text-gray-600">Staff Number: {doctorInfo?.staff_number}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-pink-100 rounded-full" aria-hidden="true">
+                <Calendar className="w-6 h-6 text-pink-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Appointments</p>
+                <p className="text-2xl font-semibold">{appointments.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 rounded-full" aria-hidden="true">
+                <User className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Patients</p>
+                <p className="text-2xl font-semibold">{patients.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-100 rounded-full" aria-hidden="true">
+                <Flask className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Lab Tests</p>
+                <p className="text-2xl font-semibold">{labTests.length}</p>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FlaskRound as Flask } from 'lucide-react';
-import { supabase } from '../supabase';
 import type { LabTest, Doctor } from '../types/database';
+import { getLabTests, getDoctors } from '../lib/localStorage';
 
 interface LabTestWithDoctor extends LabTest {
   doctor: Doctor;
@@ -12,28 +12,39 @@ export function Notifications() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchLabTests();
+    loadLabTests();
   }, []);
 
-  const fetchLabTests = async () => {
+  const loadLabTests = () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
 
-      const { data, error } = await supabase
-        .from('lab_tests')
-        .select(`
-          *,
-          doctor:doctors(*)
-        `)
-        .eq('patient_id', user.id)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false });
+      const user = JSON.parse(userStr);
+      const tests = getLabTests();
+      const doctors = getDoctors();
 
-      if (error) throw error;
-      setLabTests(data || []);
+      // Combine lab tests with doctor data
+      const testsWithDoctors = tests
+        .filter(test => test.patient_id === user.id && test.status === 'completed')
+        .map(test => ({
+          ...test,
+          doctor: doctors.find(doc => doc.id === test.doctor_id) || {
+            id: '',
+            staff_number: '',
+            first_name: 'Unknown',
+            last_name: 'Doctor',
+            email: '',
+            phone: '',
+            department: '',
+            created_at: ''
+          }
+        }))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setLabTests(testsWithDoctors);
     } catch (error) {
-      console.error('Error fetching lab tests:', error);
+      console.error('Error loading lab tests:', error);
     } finally {
       setLoading(false);
     }
@@ -65,7 +76,7 @@ export function Notifications() {
                       {test.test_type}
                     </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      Requested by Dr. {test.doctor.name}
+                      Requested by Dr. {test.doctor.first_name} {test.doctor.last_name}
                     </p>
                     <p className="text-sm text-gray-600">
                       {new Date(test.created_at).toLocaleDateString()}
